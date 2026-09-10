@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+        window.location.replace(`/controller.html${window.location.search}`);
+      }
+    </script>
+    <link rel="stylesheet" href="/src/style.css">
+    <title>freeroam3d</title>
+  </head>
+  <body>
+    <div id="scanner-screen">
+      <section class="pairing-card">
+        <p class="eyebrow">FREE ROAM 3D</p>
+        <h1 id="pairing-title">Connect your controller</h1>
+        <canvas id="qr-code" aria-label="Controller QR code"></canvas>
+        <p id="pairing-status">Creating a secure game link…</p>
+        <p class="room-code-label">Or enter this room code</p>
+        <strong id="room-code" class="room-code">------</strong>
+        <p class="pairing-help">Use your phone camera to scan the QR code.</p>
+      </section>
+    </div>
+    <div id="app"></div>
+    <p id="world-loading-status" aria-live="polite"></p>
+    <!-- <canvas id="3d-world"></canvas> -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

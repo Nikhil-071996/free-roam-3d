@@ -1,0 +1,11 @@
+Model Information:
+* title:	Sonic Unleashed - Spagonia Hub(Night)
+* source:	https://sketchfab.com/3d-models/sonic-unleashed-spagonia-hubnight-60d59010d5b2477f889d9d40039c4fc3
+* author:	Noah (https://sketchfab.com/smiN5214)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Sonic Unleashed - Spagonia Hub(Night)" (https://sketchfab.com/3d-models/sonic-unleashed-spagonia-hubnight-60d59010d5b2477f889d9d40039c4fc3) by Noah (https://sketchfab.com/smiN5214) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

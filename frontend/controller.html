@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>FreeRoam3D Controller</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    #controller {
+      display: none;
+      min-height: 100vh;
+      padding: 18px;
+      touch-action: none;
+    }
+
+    #orientation-warning {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(8, 12, 20, 0.95);
+    }
+
+    #orientation-warning {
+      display: none;
+    }
+
+    .mobile-prompt-card {
+      width: min(100%, 340px);
+      text-align: center;
+    }
+
+    @media (orientation: portrait) {
+      body.controller-active #orientation-warning {
+        display: grid;
+      }
+    }
+
+    #controller h1,
+    #controller-status {
+      position: fixed;
+      z-index: 2;
+      left: 0;
+      right: 0;
+      margin: 0;
+      pointer-events: none;
+    }
+
+    #controller h1 {
+      top: 18px;
+      font-size: 20px;
+    }
+
+    #controller-status {
+      top: 45px;
+      color: #a8d8ff;
+      font-size: 14px;
+    }
+
+    #join-screen {
+      width: min(100%, 360px);
+      margin: 0 auto;
+      padding: 28px 20px;
+    }
+
+    #join-screen button {
+      width: 100%;
+      height: 54px;
+      margin-top: 10px;
+      font-size: 17px;
+    }
+
+    #room-code-input {
+      width: 100%;
+      height: 52px;
+      padding: 0 14px;
+      border: 1px solid #555;
+      border-radius: 10px;
+      background: #222;
+      color: white;
+      font-size: 20px;
+      letter-spacing: 0.15em;
+      text-align: center;
+    }
+
+    #scanner-preview {
+      display: none;
+      width: 100%;
+      margin-top: 16px;
+      border-radius: 12px;
+      background: #000;
+    }
+
+    .or-divider {
+      margin: 26px 0 16px;
+      color: #aaa;
+    }
+
+    #look-area {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12vw;
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.14em;
+      touch-action: none;
+    }
+
+    #joystick-controls {
+      position: absolute;
+      z-index: 1;
+      left: max(20px, env(safe-area-inset-left));
+      bottom: max(20px, env(safe-area-inset-bottom));
+    }
+
+    .joystick-zone {
+      position: relative;
+      width: clamp(170px, 29vw, 240px);
+      height: clamp(170px, 29vw, 240px);
+      min-width: 0;
+      min-height: 0;
+      border: 3px solid #5a5a5a;
+      border-radius: 50%;
+      background: radial-gradient(circle, #393939, #1a1a1a 70%);
+      touch-action: none;
+    }
+
+    .joystick-zone::after {
+      content: attr(data-label);
+      position: absolute;
+      inset: auto 0 16px;
+      color: #bdbdbd;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      pointer-events: none;
+    }
+
+    .joystick-stick {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 82px;
+      height: 82px;
+      margin: -41px;
+      border: 2px solid #aaa;
+      border-radius: 50%;
+      background: rgba(104, 179, 255, 0.4);
+      box-shadow: 0 5px 18px rgba(0, 0, 0, 0.55);
+      pointer-events: none;
+      transition: transform 80ms linear;
+    }
+
+    @media (orientation: portrait) {
+      .joystick-zone { width: 180px; height: 180px; }
+      #look-area { padding-right: 8vw; }
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <!-- ================================ -->
+  <!-- JOIN SCREEN -->
+  <!-- ================================ -->
+
+  <div id="join-screen">
+
+    <h1>FreeRoam3D</h1>
+
+    <p id="status">Connect to a game to use this phone as its controller.</p>
+
+    <button id="start-scanner">Scan QR code</button>
+    <video id="scanner-preview" playsinline></video>
+    <p id="scanner-status"></p>
+
+    <p class="or-divider">— or enter a room code —</p>
+    <input
+      id="room-code-input"
+      placeholder="6-digit code"
+      inputmode="numeric"
+      maxlength="6"
+      autocomplete="one-time-code"
+    >
+    <button id="join-by-code">Connect with code</button>
+
+  </div>
+
+
+  <!-- ================================ -->
+  <!-- CONTROLLER -->
+  <!-- ================================ -->
+
+  <div id="controller">
+
+    <h1>Controller</h1>
+
+    <p id="controller-status">
+      Connected
+    </p>
+
+
+    <div id="look-area" aria-label="Drag to look around">
+      DRAG TO LOOK
+    </div>
+
+    <div id="joystick-controls">
+      <div class="joystick-zone" data-joystick="move" data-label="MOVE" aria-label="Movement joystick">
+        <div class="joystick-stick"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="orientation-warning">
+    <section class="mobile-prompt-card">
+      <h2>Rotate your phone</h2>
+      <p>For the best experience, rotate your phone to landscape mode.</p>
+    </section>
+  </div>
+
+
+  <!-- ================================ -->
+  <!-- SOCKET.IO -->
+  <!-- ================================ -->
+
+  <script type="module">
+
+    import { io } from 'socket.io-client';
+
+
+    const socket = io();
+
+
+    // ==================================
+    // ELEMENTS
+    // ==================================
+
+    const status =
+      document.getElementById('status');
+
+    const roomCodeInput =
+      document.getElementById('room-code-input');
+
+    const joinByCodeButton =
+      document.getElementById('join-by-code');
+
+    const startScannerButton =
+      document.getElementById('start-scanner');
+
+    const scannerPreview =
+      document.getElementById('scanner-preview');
+
+    const scannerStatus =
+      document.getElementById('scanner-status');
+
+    const joinScreen =
+      document.getElementById('join-screen');
+
+    const controller =
+      document.getElementById('controller');
+
+    const controllerStatus =
+      document.getElementById(
+        'controller-status'
+      );
+
+
+    // ==================================
+    // CONNECTION
+    // ==================================
+
+    let roomId =
+      new URLSearchParams(window.location.search)
+        .get('room');
+
+    const joinGame = () => {
+
+      if (!roomId) {
+        return;
+      }
+
+      status.textContent =
+        'Connecting controller...';
+
+      socket.emit(
+        'join-room',
+        {
+          roomId,
+        }
+      );
+
+    };
+
+    const enableMobileImmersiveMode = async () => {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        // Fullscreen must be user initiated in most browsers.
+      }
+
+      try {
+        await screen.orientation?.lock?.('landscape');
+      } catch (error) {
+        // The portrait message is shown when the browser cannot rotate it.
+      }
+    };
+
+    const connectWithRoomId = (nextRoomId) => {
+      roomId = nextRoomId.trim();
+
+      if (!roomId) {
+        status.textContent = 'Enter a room code first';
+        return;
+      }
+
+      if (socket.connected) {
+        joinGame();
+      }
+    };
+
+    joinByCodeButton.addEventListener('click', () => {
+      connectWithRoomId(roomCodeInput.value);
+    });
+
+    roomCodeInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        connectWithRoomId(roomCodeInput.value);
+      }
+    });
+
+    socket.on('connect', () => {
+
+      console.log(
+        'Connected:',
+        socket.id
+      );
+
+      if (roomId) {
+        joinGame();
+      } else {
+        status.textContent =
+          'Scan the QR code or enter the room code shown in the game.';
+      }
+
+    });
+
+
+    socket.on('connect_error', (error) => {
+
+      console.error(
+        'Connection error:',
+        error.message
+      );
+
+      status.textContent =
+        'Connection failed';
+
+    });
+
+
+    // ==================================
+    // JOIN SUCCESS
+    // ==================================
+
+    socket.on(
+      'room-joined',
+      (data) => {
+
+        console.log(
+          'Joined room:',
+          data.roomId
+        );
+
+
+        joinScreen.style.display =
+          'none';
+
+        controller.style.display =
+          'block';
+
+        stopScanner();
+        document.body.classList.add('controller-active');
+        enableMobileImmersiveMode();
+
+      }
+    );
+
+
+    // ==================================
+    // JOIN ERROR
+    // ==================================
+
+    socket.on(
+      'room-error',
+      (data) => {
+
+        console.error(
+          'Room error:',
+          data.message
+        );
+
+
+        status.textContent =
+          data.message;
+
+      }
+    );
+
+
+    // ==================================
+    // GAME DISCONNECTED
+    // ==================================
+
+    socket.on(
+      'game-disconnected',
+      () => {
+
+        controllerStatus.textContent =
+          'Game disconnected';
+
+      }
+    );
+
+
+    let scannerStream;
+    let isScanning = false;
+
+    const stopScanner = () => {
+      isScanning = false;
+      scannerStream?.getTracks().forEach((track) => track.stop());
+      scannerStream = undefined;
+      scannerPreview.srcObject = null;
+      scannerPreview.style.display = 'none';
+    };
+
+    const roomIdFromQr = (rawValue) => {
+      try {
+        const scannedUrl = new URL(rawValue);
+        return scannedUrl.searchParams.get('room');
+      } catch {
+        return rawValue.match(/^\d{6}$/)?.[0] || null;
+      }
+    };
+
+    startScannerButton.addEventListener('click', async () => {
+      if (!window.isSecureContext) {
+        scannerStatus.textContent =
+          'For this local Wi-Fi site, use your phone Camera app to scan the game QR code, or enter the code below.';
+        return;
+      }
+
+      if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
+        scannerStatus.textContent =
+          'QR scanning is not supported in this browser. Use your phone camera or enter the code.';
+        return;
+      }
+
+      try {
+        scannerStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        });
+        scannerPreview.srcObject = scannerStream;
+        scannerPreview.style.display = 'block';
+        await scannerPreview.play();
+        isScanning = true;
+        scannerStatus.textContent = 'Point the camera at the game QR code';
+
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const scanFrame = async () => {
+          if (!isScanning) return;
+
+          const codes = await detector.detect(scannerPreview);
+          const scannedRoomId = codes[0] && roomIdFromQr(codes[0].rawValue);
+
+          if (scannedRoomId) {
+            stopScanner();
+            connectWithRoomId(scannedRoomId);
+            return;
+          }
+
+          requestAnimationFrame(scanFrame);
+        };
+
+        scanFrame();
+      } catch (error) {
+        stopScanner();
+        scannerStatus.textContent = 'Camera access was unavailable. Enter the room code instead.';
+        console.error('QR scanner error:', error);
+      }
+    });
+
+    // ==================================
+    // DUAL VIRTUAL JOYSTICKS
+    // ==================================
+
+    document.querySelectorAll('[data-joystick]').forEach((zone) => {
+      const stick = zone.querySelector('.joystick-stick');
+      const control = zone.dataset.joystick;
+      let activePointerId = null;
+
+      const sendJoystick = (x, y) => {
+        socket.emit('controller-input', {
+          type: 'joystick',
+          control,
+          x,
+          y,
+        });
+      };
+
+      const moveStick = (event) => {
+        const rect = zone.getBoundingClientRect();
+        const maxDistance = rect.width * 0.31;
+        const offsetX = event.clientX - (rect.left + rect.width / 2);
+        const offsetY = event.clientY - (rect.top + rect.height / 2);
+        const distance = Math.hypot(offsetX, offsetY);
+        const scale = distance > maxDistance ? maxDistance / distance : 1;
+        const x = (offsetX * scale) / maxDistance;
+        const y = (offsetY * scale) / maxDistance;
+
+        stick.style.transform = `translate(${offsetX * scale}px, ${offsetY * scale}px)`;
+        sendJoystick(x, y);
+      };
+
+      const releaseStick = () => {
+        if (activePointerId === null) return;
+
+        activePointerId = null;
+        stick.style.transform = 'translate(0, 0)';
+        sendJoystick(0, 0);
+      };
+
+      zone.addEventListener('pointerdown', (event) => {
+        if (activePointerId !== null) return;
+
+        event.preventDefault();
+        activePointerId = event.pointerId;
+        enableMobileImmersiveMode();
+        zone.setPointerCapture(event.pointerId);
+        moveStick(event);
+      });
+
+      zone.addEventListener('pointermove', (event) => {
+        if (event.pointerId === activePointerId) {
+          moveStick(event);
+        }
+      });
+
+      zone.addEventListener('pointerup', releaseStick);
+      zone.addEventListener('pointercancel', releaseStick);
+      zone.addEventListener('lostpointercapture', releaseStick);
+    });
+
+    // The rest of the controller is an open touch surface for free look.
+    // Unlike a right joystick, the camera follows the finger's drag directly.
+    const lookArea = document.getElementById('look-area');
+    let lookPointerId = null;
+    let previousLookPosition = null;
+
+    lookArea.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      enableMobileImmersiveMode();
+      lookPointerId = event.pointerId;
+      previousLookPosition = { x: event.clientX, y: event.clientY };
+      lookArea.setPointerCapture(event.pointerId);
+    });
+
+    lookArea.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== lookPointerId || !previousLookPosition) return;
+
+      const deltaX = event.clientX - previousLookPosition.x;
+      const deltaY = event.clientY - previousLookPosition.y;
+      previousLookPosition = { x: event.clientX, y: event.clientY };
+
+      socket.emit('controller-input', {
+        type: 'look-delta',
+        deltaX,
+        deltaY,
+      });
+    });
+
+    const releaseLook = (event) => {
+      if (event.pointerId !== lookPointerId) return;
+
+      lookPointerId = null;
+      previousLookPosition = null;
+    };
+
+    lookArea.addEventListener('pointerup', releaseLook);
+    lookArea.addEventListener('pointercancel', releaseLook);
+    lookArea.addEventListener('lostpointercapture', releaseLook);
+
+  </script>
+
+</body>
+
+</html>
