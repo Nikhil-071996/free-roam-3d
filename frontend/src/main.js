@@ -6,7 +6,7 @@ import QRCode from 'qrcode';
 
 // Connect through the Vite proxy. This works from both the desktop and a
 // phone on the same Wi-Fi, instead of making the phone connect to itself.
-const socket = io();
+const socket = io(import.meta.env.VITE_SOCKET_URL);
 
 const scannerScreen = document.getElementById('scanner-screen');
 const pairingTitle = document.getElementById('pairing-title');
